@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>翻訳アプリ</title>
+<title>Translator</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -252,8 +252,7 @@
 <body>
 
 <header>
-  <h1>🌐 翻訳</h1>
-  <span>無料・APIキー不要</span>
+  <h1>🌐 Translator</h1>
 </header>
 
 <main>
@@ -263,43 +262,43 @@
     <div class="lang-bar">
       <div class="lang-select">
         <select id="srcLang">
-          <option value="auto">自動検出</option>
-          <option value="ja">日本語</option>
-          <option value="en">英語</option>
-          <option value="zh">中国語</option>
-          <option value="ko">韓国語</option>
-          <option value="fr">フランス語</option>
-          <option value="es">スペイン語</option>
-          <option value="de">ドイツ語</option>
-          <option value="pt">ポルトガル語</option>
-          <option value="it">イタリア語</option>
-          <option value="ru">ロシア語</option>
-          <option value="ar">アラビア語</option>
-          <option value="th">タイ語</option>
-          <option value="vi">ベトナム語</option>
-          <option value="tl">フィリピン語</option>
+          <option value="auto">Auto detect</option>
+          <option value="ja">Japanese</option>
+          <option value="en">English</option>
+          <option value="zh">Chinese</option>
+          <option value="ko">Korean</option>
+          <option value="fr">French</option>
+          <option value="es">Spanish</option>
+          <option value="de">German</option>
+          <option value="pt">Portuguese</option>
+          <option value="it">Italian</option>
+          <option value="ru">Russian</option>
+          <option value="ar">Arabic</option>
+          <option value="th">Thai</option>
+          <option value="vi">Vietnamese</option>
+          <option value="tl">Filipino</option>
         </select>
         <span id="detectedLabel"></span>
       </div>
 
-      <button class="swap-btn" id="swapBtn" title="言語を入れ替え">⇄</button>
+      <button class="swap-btn" id="swapBtn" title="Swap languages">⇄</button>
 
       <div class="lang-select">
         <select id="tgtLang">
-          <option value="ja">日本語</option>
-          <option value="en" selected>英語</option>
-          <option value="zh">中国語</option>
-          <option value="ko">韓国語</option>
-          <option value="fr">フランス語</option>
-          <option value="es">スペイン語</option>
-          <option value="de">ドイツ語</option>
-          <option value="pt">ポルトガル語</option>
-          <option value="it">イタリア語</option>
-          <option value="ru">ロシア語</option>
-          <option value="ar">アラビア語</option>
-          <option value="th">タイ語</option>
-          <option value="vi">ベトナム語</option>
-          <option value="tl">フィリピン語</option>
+          <option value="ja">Japanese</option>
+          <option value="en" selected>English</option>
+          <option value="zh">Chinese</option>
+          <option value="ko">Korean</option>
+          <option value="fr">French</option>
+          <option value="es">Spanish</option>
+          <option value="de">German</option>
+          <option value="pt">Portuguese</option>
+          <option value="it">Italian</option>
+          <option value="ru">Russian</option>
+          <option value="ar">Arabic</option>
+          <option value="th">Thai</option>
+          <option value="vi">Vietnamese</option>
+          <option value="tl">Filipino</option>
         </select>
       </div>
     </div>
@@ -309,15 +308,15 @@
       <div class="panel">
         <textarea
           id="srcText"
-          placeholder="テキストを入力..."
+          placeholder="Enter text..."
           maxlength="3000"
           autofocus
         ></textarea>
-        <button class="copy-btn" id="copySrc">コピー</button>
+        <button class="copy-btn" id="copySrc">Copy</button>
       </div>
       <div class="panel">
-        <div class="result-text placeholder" id="resultText">翻訳結果がここに表示されます</div>
-        <button class="copy-btn" id="copyTgt">コピー</button>
+        <div class="result-text placeholder" id="resultText">Translation will appear here</div>
+        <button class="copy-btn" id="copyTgt">Copy</button>
       </div>
     </div>
 
@@ -330,17 +329,17 @@
       </span>
     </div>
 
-    <button class="translate-btn" id="translateBtn">翻訳する</button>
+    <button class="translate-btn" id="translateBtn">Translate</button>
   </div>
 
-  <!-- 履歴 -->
+  <!-- History -->
   <div class="history-section">
     <h2>
-      翻訳履歴
-      <button class="clear-btn" id="clearHistory">すべて削除</button>
+      History
+      <button class="clear-btn" id="clearHistory">Clear all</button>
     </h2>
     <div class="history-list" id="historyList">
-      <p class="empty-msg">まだ翻訳履歴がありません</p>
+      <p class="empty-msg">No history yet</p>
     </div>
   </div>
 </main>
@@ -360,7 +359,7 @@ const HISTORY_KEY = 'translation_history';
 let debounceTimer = null;
 let isTranslating = false;
 let lastTranslated = '';
-let detectedLang = null; // 自動検出で判定された言語コード
+let detectedLang = null;
 
 // ---- DOM ----
 const srcText   = document.getElementById('srcText');
@@ -396,7 +395,7 @@ async function translate(text) {
   if (!text.trim() || src === tgt) return;
 
   isTranslating = true;
-  setStatus('loading', '翻訳中...');
+  setStatus('loading', 'Translating...');
   translateBtn.disabled = true;
 
   let result = null;
@@ -419,12 +418,11 @@ async function translate(text) {
     setStatus('', '');
     saveHistory(src, tgt, text, result);
     lastTranslated = text;
-    // 自動検出の場合、何語が検出されたかを表示
     if (src === 'auto' && detectedLang) {
       detectedLabel.textContent = `(${LANG_NAME[detectedLang] ?? detectedLang})`;
     }
   } else {
-    setStatus('error', `翻訳失敗: ${lastErr?.message ?? '不明なエラー'}`);
+    setStatus('error', `Failed: ${lastErr?.message ?? 'unknown error'}`);
   }
 }
 
@@ -436,7 +434,7 @@ function showResult(text) {
 }
 
 function clearResult() {
-  resultText.textContent = '翻訳結果がここに表示されます';
+  resultText.textContent = 'Translation will appear here';
   resultText.classList.add('placeholder');
   copyTgt.classList.remove('visible');
 }
@@ -492,7 +490,7 @@ swapBtn.addEventListener('click', () => {
 
   srcLang.value = newSrc;
   tgtLang.value = newTgt;
-  detectedLabel.textContent = ''; // 言語が確定したのでラベル不要
+  detectedLabel.textContent = '';
 
   // 翻訳結果を入力欄に移して再翻訳
   const resultStr = resultText.classList.contains('placeholder') ? '' : resultText.textContent;
@@ -510,10 +508,10 @@ function makeCopyHandler(btn, getTextFn) {
   btn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(getTextFn());
-      btn.textContent = '✓ コピー済み';
+      btn.textContent = '✓ Copied';
       btn.classList.add('copied');
       setTimeout(() => {
-        btn.textContent = 'コピー';
+        btn.textContent = 'Copy';
         btn.classList.remove('copied');
       }, 1500);
     } catch { /* ignore */ }
@@ -524,10 +522,10 @@ makeCopyHandler(copyTgt, () => resultText.textContent);
 
 // ---- 履歴 ----
 const LANG_NAME = {
-  auto:'自動', ja:'日本語', en:'英語', zh:'中国語', ko:'韓国語',
-  fr:'フランス語', es:'スペイン語', de:'ドイツ語', pt:'ポルトガル語',
-  it:'イタリア語', ru:'ロシア語', ar:'アラビア語', th:'タイ語',
-  vi:'ベトナム語', tl:'フィリピン語',
+  auto:'Auto', ja:'Japanese', en:'English', zh:'Chinese', ko:'Korean',
+  fr:'French', es:'Spanish', de:'German', pt:'Portuguese',
+  it:'Italian', ru:'Russian', ar:'Arabic', th:'Thai',
+  vi:'Vietnamese', tl:'Filipino',
 };
 
 function loadHistory() {
@@ -542,7 +540,7 @@ function saveHistory(src, tgt, source, target) {
     src, tgt,
     source: source.slice(0, 120),
     target: target.slice(0, 120),
-    time: new Date().toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }),
+    time: new Date().toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }),
   };
   const newHistory = [entry, ...history].slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
@@ -551,7 +549,7 @@ function saveHistory(src, tgt, source, target) {
 
 function renderHistory(history) {
   if (!history.length) {
-    historyList.innerHTML = '<p class="empty-msg">まだ翻訳履歴がありません</p>';
+    historyList.innerHTML = '<p class="empty-msg">No history yet</p>';
     return;
   }
   historyList.innerHTML = history.map(h => `
@@ -586,7 +584,7 @@ function escHtml(str) {
 }
 
 clearHistory.addEventListener('click', () => {
-  if (!confirm('翻訳履歴をすべて削除しますか？')) return;
+  if (!confirm('Clear all history?')) return;
   localStorage.removeItem(HISTORY_KEY);
   renderHistory([]);
 });
