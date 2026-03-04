@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>翻訳アプリ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f7f8fa;
+    color: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #fff;
+    border-bottom: 1px solid #e2e5ea;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 { font-size: 1.15rem; font-weight: 700; color: #2563eb; }
+  header span { font-size: 0.8rem; color: #888; margin-left: 4px; }
+
+  main { flex: 1; padding: 24px; max-width: 1000px; margin: 0 auto; width: 100%; }
+
+  /* 翻訳パネル */
+  .translator {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+
+  /* 言語バー */
+  .lang-bar {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #e2e5ea;
+    background: #f9fafb;
+  }
+  .lang-select {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+  }
+  .lang-select select {
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 18px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0 center;
+  }
+  .swap-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    margin: 0 8px;
+  }
+  .swap-btn:hover { background: #eff6ff; border-color: #2563eb; }
+
+  /* テキストエリア */
+  .panels {
+    display: flex;
+    min-height: 220px;
+  }
+  .panel {
+    flex: 1;
+    padding: 16px;
+    position: relative;
+  }
+  .panel + .panel {
+    border-left: 1px solid #e2e5ea;
+    background: #fafbff;
+  }
+  textarea {
+    width: 100%;
+    height: 100%;
+    min-height: 180px;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    background: transparent;
+    color: #1a1a2e;
+  }
+  .result-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #1e3a8a;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 180px;
+  }
+  .placeholder { color: #aaa; }
+
+  /* コピーボタン */
+  .copy-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.15s;
+    display: none;
+  }
+  .copy-btn:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  .copy-btn.visible { display: block; }
+  .copy-btn.copied { background: #d1fae5; border-color: #10b981; color: #065f46; }
+
+  /* 文字数・ステータス */
+  .panel-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px 10px;
+    border-top: 1px solid #e2e5ea;
+    font-size: 0.8rem;
+    color: #9ca3af;
+  }
+  .char-count { color: #9ca3af; }
+  .status {
+    font-size: 0.8rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status.loading { color: #2563eb; }
+  .status.error { color: #dc2626; }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid #dbeafe;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .spinner.active { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 翻訳ボタン */
+  .translate-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 0 0 12px 12px;
+  }
+  .translate-btn:hover { background: #1d4ed8; }
+  .translate-btn:disabled { background: #93c5fd; cursor: default; }
+
+  /* 履歴 */
+  .history-section { margin-top: 24px; }
+  .history-section h2 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clear-btn {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .clear-btn:hover { color: #dc2626; background: #fee2e2; }
+
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px 16px;
+    border: 1px solid #e2e5ea;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .history-item:hover { border-color: #2563eb; }
+  .history-meta {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .history-source { color: #374151; font-size: 0.9rem; }
+  .history-target { color: #1e3a8a; font-size: 0.9rem; margin-top: 2px; }
+  .history-arrow { color: #9ca3af; margin: 0 4px; }
+
+  .empty-msg {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    padding: 20px;
+  }
+
+  @media (max-width: 600px) {
+    main { padding: 12px; }
+    .panels { flex-direction: column; }
+    .panel + .panel { border-left: none; border-top: 1px solid #e2e5ea; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌐 翻訳</h1>
+  <span>無料・APIキー不要</span>
+</header>
+
+<main>
+  <div class="translator">
+
+    <!-- 言語バー -->
+    <div class="lang-bar">
+      <div class="lang-select">
+        <select id="srcLang">
+          <option value="auto">自動検出</option>
+          <option value="ja">日本語</option>
+          <option value="en">英語</option>
+          <option value="zh">中国語</option>
+          <option value="ko">韓国語</option>
+          <option value="fr">フランス語</option>
+          <option value="es">スペイン語</option>
+          <option value="de">ドイツ語</option>
+          <option value="pt">ポルトガル語</option>
+          <option value="it">イタリア語</option>
+          <option value="ru">ロシア語</option>
+          <option value="ar">アラビア語</option>
+          <option value="th">タイ語</option>
+          <option value="vi">ベトナム語</option>
+          <option value="tl">フィリピン語</option>
+        </select>
+      </div>
+
+      <button class="swap-btn" id="swapBtn" title="言語を入れ替え">⇄</button>
+
+      <div class="lang-select">
+        <select id="tgtLang">
+          <option value="ja">日本語</option>
+          <option value="en" selected>英語</option>
+          <option value="zh">中国語</option>
+          <option value="ko">韓国語</option>
+          <option value="fr">フランス語</option>
+          <option value="es">スペイン語</option>
+          <option value="de">ドイツ語</option>
+          <option value="pt">ポルトガル語</option>
+          <option value="it">イタリア語</option>
+          <option value="ru">ロシア語</option>
+          <option value="ar">アラビア語</option>
+          <option value="th">タイ語</option>
+          <option value="vi">ベトナム語</option>
+          <option value="tl">フィリピン語</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- テキストパネル -->
+    <div class="panels">
+      <div class="panel">
+        <textarea
+          id="srcText"
+          placeholder="テキストを入力..."
+          maxlength="3000"
+          autofocus
+        ></textarea>
+        <button class="copy-btn" id="copySrc">コピー</button>
+      </div>
+      <div class="panel">
+        <div class="result-text placeholder" id="resultText">翻訳結果がここに表示されます</div>
+        <button class="copy-btn" id="copyTgt">コピー</button>
+      </div>
+    </div>
+
+    <!-- フッター -->
+    <div class="panel-footer">
+      <span class="char-count"><span id="charCount">0</span> / 3000</span>
+      <span class="status" id="status">
+        <span class="spinner" id="spinner"></span>
+        <span id="statusText"></span>
+      </span>
+    </div>
+
+    <button class="translate-btn" id="translateBtn">翻訳する</button>
+  </div>
+
+  <!-- 履歴 -->
+  <div class="history-section">
+    <h2>
+      翻訳履歴
+      <button class="clear-btn" id="clearHistory">すべて削除</button>
+    </h2>
+    <div class="history-list" id="historyList">
+      <p class="empty-msg">まだ翻訳履歴がありません</p>
+    </div>
+  </div>
+</main>
+
+<script>
+// ---- 設定 ----
+const INSTANCES = [
+  'https://lingva.ml',
+  'https://translate.plausibility.cloud',
+  'https://lingva.pussthecat.org',
+];
+const DEBOUNCE_MS = 800;
+const MAX_HISTORY = 30;
+const HISTORY_KEY = 'translation_history';
+
+// ---- 状態 ----
+let debounceTimer = null;
+let isTranslating = false;
+let lastTranslated = '';
+
+// ---- DOM ----
+const srcText   = document.getElementById('srcText');
+const srcLang   = document.getElementById('srcLang');
+const tgtLang   = document.getElementById('tgtLang');
+const swapBtn   = document.getElementById('swapBtn');
+const resultText  = document.getElementById('resultText');
+const translateBtn = document.getElementById('translateBtn');
+const charCount  = document.getElementById('charCount');
+const spinner   = document.getElementById('spinner');
+const statusText  = document.getElementById('statusText');
+const copySrc   = document.getElementById('copySrc');
+const copyTgt   = document.getElementById('copyTgt');
+const historyList = document.getElementById('historyList');
+const clearHistory = document.getElementById('clearHistory');
+
+// ---- 翻訳 API ----
+async function translateWithInstance(instance, src, tgt, text) {
+  const encoded = encodeURIComponent(text);
+  const url = `${instance}/api/v1/${src}/${tgt}/${encoded}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (!data.translation) throw new Error('no translation');
+  return data.translation;
+}
+
+async function translate(text) {
+  const src = srcLang.value;
+  const tgt = tgtLang.value;
+  if (!text.trim() || src === tgt) return;
+
+  isTranslating = true;
+  setStatus('loading', '翻訳中...');
+  translateBtn.disabled = true;
+
+  let result = null;
+  let lastErr = null;
+
+  for (const instance of INSTANCES) {
+    try {
+      result = await translateWithInstance(instance, src, tgt, text);
+      break;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+
+  isTranslating = false;
+  translateBtn.disabled = false;
+
+  if (result !== null) {
+    showResult(result);
+    setStatus('', '');
+    saveHistory(src, tgt, text, result);
+    lastTranslated = text;
+  } else {
+    setStatus('error', `翻訳失敗: ${lastErr?.message ?? '不明なエラー'}`);
+  }
+}
+
+// ---- 表示 ----
+function showResult(text) {
+  resultText.textContent = text;
+  resultText.classList.remove('placeholder');
+  copyTgt.classList.add('visible');
+}
+
+function clearResult() {
+  resultText.textContent = '翻訳結果がここに表示されます';
+  resultText.classList.add('placeholder');
+  copyTgt.classList.remove('visible');
+}
+
+function setStatus(type, msg) {
+  statusText.textContent = msg;
+  spinner.classList.toggle('active', type === 'loading');
+  const el = document.getElementById('status');
+  el.className = 'status' + (type ? ` ${type}` : '');
+}
+
+// ---- イベント ----
+srcText.addEventListener('input', () => {
+  const len = srcText.value.length;
+  charCount.textContent = len;
+  copySrc.classList.toggle('visible', len > 0);
+
+  if (len === 0) { clearResult(); setStatus('', ''); return; }
+
+  // デバウンス自動翻訳
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    if (srcText.value.trim() && srcText.value !== lastTranslated) {
+      translate(srcText.value);
+    }
+  }, DEBOUNCE_MS);
+});
+
+translateBtn.addEventListener('click', () => {
+  clearTimeout(debounceTimer);
+  if (srcText.value.trim()) translate(srcText.value);
+});
+
+srcText.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    clearTimeout(debounceTimer);
+    if (srcText.value.trim()) translate(srcText.value);
+  }
+});
+
+swapBtn.addEventListener('click', () => {
+  const curSrc = srcLang.value;
+  const curTgt = tgtLang.value;
+  // auto は入れ替えできないので検出言語を維持
+  if (curSrc === 'auto') return;
+  srcLang.value = curTgt;
+  tgtLang.value = curSrc;
+  // 結果を入力欄に
+  const resultStr = resultText.textContent;
+  if (!resultText.classList.contains('placeholder') && resultStr) {
+    srcText.value = resultStr;
+    charCount.textContent = resultStr.length;
+    copySrc.classList.add('visible');
+    translate(resultStr);
+  }
+});
+
+// ---- コピー ----
+function makeCopyHandler(btn, getTextFn) {
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(getTextFn());
+      btn.textContent = '✓ コピー済み';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'コピー';
+        btn.classList.remove('copied');
+      }, 1500);
+    } catch { /* ignore */ }
+  });
+}
+makeCopyHandler(copySrc, () => srcText.value);
+makeCopyHandler(copyTgt, () => resultText.textContent);
+
+// ---- 履歴 ----
+const LANG_NAME = {
+  auto:'自動', ja:'日本語', en:'英語', zh:'中国語', ko:'韓国語',
+  fr:'フランス語', es:'スペイン語', de:'ドイツ語', pt:'ポルトガル語',
+  it:'イタリア語', ru:'ロシア語', ar:'アラビア語', th:'タイ語',
+  vi:'ベトナム語', tl:'フィリピン語',
+};
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveHistory(src, tgt, source, target) {
+  const history = loadHistory();
+  const entry = {
+    id: Date.now(),
+    src, tgt,
+    source: source.slice(0, 120),
+    target: target.slice(0, 120),
+    time: new Date().toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }),
+  };
+  const newHistory = [entry, ...history].slice(0, MAX_HISTORY);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+  renderHistory(newHistory);
+}
+
+function renderHistory(history) {
+  if (!history.length) {
+    historyList.innerHTML = '<p class="empty-msg">まだ翻訳履歴がありません</p>';
+    return;
+  }
+  historyList.innerHTML = history.map(h => `
+    <div class="history-item" data-id="${h.id}">
+      <div class="history-meta">
+        <span>${LANG_NAME[h.src] ?? h.src} → ${LANG_NAME[h.tgt] ?? h.tgt}</span>
+        <span>${h.time}</span>
+      </div>
+      <div class="history-source">${escHtml(h.source)}</div>
+      <div class="history-target">${escHtml(h.target)}</div>
+    </div>
+  `).join('');
+
+  // クリックで再利用
+  historyList.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const h = history.find(x => x.id === Number(el.dataset.id));
+      if (!h) return;
+      srcLang.value = h.src === 'auto' ? 'auto' : h.src;
+      tgtLang.value = h.tgt;
+      srcText.value = h.source;
+      charCount.textContent = h.source.length;
+      copySrc.classList.add('visible');
+      showResult(h.target);
+      srcText.focus();
+    });
+  });
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+clearHistory.addEventListener('click', () => {
+  if (!confirm('翻訳履歴をすべて削除しますか？')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory([]);
+});
+
+// ---- 初期化 ----
+renderHistory(loadHistory());
+</script>
+</body>
+</html>
