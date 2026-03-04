@@ -352,6 +352,7 @@ const HISTORY_KEY = 'translation_history';
 let debounceTimer = null;
 let isTranslating = false;
 let lastTranslated = '';
+let detectedLang = null; // 自動検出で判定された言語コード
 
 // ---- DOM ----
 const srcText   = document.getElementById('srcText');
@@ -376,6 +377,7 @@ async function translateWithInstance(instance, src, tgt, text) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   if (!data.translation) throw new Error('no translation');
+  if (data.info?.detectedSource) detectedLang = data.info.detectedSource;
   return data.translation;
 }
 
@@ -465,16 +467,21 @@ srcText.addEventListener('keydown', (e) => {
 swapBtn.addEventListener('click', () => {
   const curSrc = srcLang.value;
   const curTgt = tgtLang.value;
-  // auto は入れ替えできないので検出言語を維持
-  if (curSrc === 'auto') return;
-  srcLang.value = curTgt;
-  tgtLang.value = curSrc;
-  // 結果を入力欄に
-  const resultStr = resultText.textContent;
-  if (!resultText.classList.contains('placeholder') && resultStr) {
+
+  // auto の場合は検出済み言語を使う。なければ tgtLang をそのまま src に
+  const newSrc = curSrc === 'auto' ? (detectedLang || curTgt) : curTgt;
+  const newTgt = curSrc === 'auto' ? curTgt : curSrc;
+
+  srcLang.value = newSrc;
+  tgtLang.value = newTgt;
+
+  // 翻訳結果を入力欄に移して再翻訳
+  const resultStr = resultText.classList.contains('placeholder') ? '' : resultText.textContent;
+  if (resultStr) {
     srcText.value = resultStr;
     charCount.textContent = resultStr.length;
     copySrc.classList.add('visible');
+    clearResult();
     translate(resultStr);
   }
 });
