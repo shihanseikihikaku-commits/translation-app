@@ -65,6 +65,13 @@
     background-repeat: no-repeat;
     background-position: right 0 center;
   }
+  #detectedLabel {
+    font-size: 0.75rem;
+    color: #2563eb;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+
   .swap-btn {
     width: 40px;
     height: 40px;
@@ -272,6 +279,7 @@
           <option value="vi">ベトナム語</option>
           <option value="tl">フィリピン語</option>
         </select>
+        <span id="detectedLabel"></span>
       </div>
 
       <button class="swap-btn" id="swapBtn" title="言語を入れ替え">⇄</button>
@@ -364,10 +372,11 @@ const translateBtn = document.getElementById('translateBtn');
 const charCount  = document.getElementById('charCount');
 const spinner   = document.getElementById('spinner');
 const statusText  = document.getElementById('statusText');
-const copySrc   = document.getElementById('copySrc');
-const copyTgt   = document.getElementById('copyTgt');
-const historyList = document.getElementById('historyList');
+const copySrc      = document.getElementById('copySrc');
+const copyTgt      = document.getElementById('copyTgt');
+const historyList  = document.getElementById('historyList');
 const clearHistory = document.getElementById('clearHistory');
+const detectedLabel = document.getElementById('detectedLabel');
 
 // ---- 翻訳 API ----
 async function translateWithInstance(instance, src, tgt, text) {
@@ -410,6 +419,10 @@ async function translate(text) {
     setStatus('', '');
     saveHistory(src, tgt, text, result);
     lastTranslated = text;
+    // 自動検出の場合、何語が検出されたかを表示
+    if (src === 'auto' && detectedLang) {
+      detectedLabel.textContent = `(${LANG_NAME[detectedLang] ?? detectedLang})`;
+    }
   } else {
     setStatus('error', `翻訳失敗: ${lastErr?.message ?? '不明なエラー'}`);
   }
@@ -436,6 +449,11 @@ function setStatus(type, msg) {
 }
 
 // ---- イベント ----
+srcLang.addEventListener('change', () => {
+  detectedLabel.textContent = '';
+  detectedLang = null;
+});
+
 srcText.addEventListener('input', () => {
   const len = srcText.value.length;
   charCount.textContent = len;
@@ -474,6 +492,7 @@ swapBtn.addEventListener('click', () => {
 
   srcLang.value = newSrc;
   tgtLang.value = newTgt;
+  detectedLabel.textContent = ''; // 言語が確定したのでラベル不要
 
   // 翻訳結果を入力欄に移して再翻訳
   const resultStr = resultText.classList.contains('placeholder') ? '' : resultText.textContent;
